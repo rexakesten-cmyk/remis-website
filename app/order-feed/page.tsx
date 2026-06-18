@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 
 type BaggedProduct = {
@@ -45,60 +45,36 @@ export default function OrderFeed() {
   }).filter((item) => item.quantity > 0);
 
   const baggedSubtotal = baggedLineItems.reduce((sum, item) => sum + item.lineTotal, 0);
+  const checkoutStatus = searchParams.get('checkout');
 
-  useEffect(() => {
-    const checkoutStatus = searchParams.get('checkout');
-    const sessionId = searchParams.get('session_id');
-
-    async function verifyStripeCheckoutSuccess() {
-      if (!sessionId) {
-        setSubmitStatus('error');
-        setSubmitMessage('Stripe checkout returned without a session id. Please contact us to confirm payment.');
-        return;
-      }
-
-      try {
-        const response = await fetch(
-          `/api/payments/stripe-session-status?session_id=${encodeURIComponent(sessionId)}`,
-        );
-        const result = (await response.json()) as { paid?: boolean; paymentStatus?: string; message?: string };
-
-        if (!response.ok) {
-          throw new Error(result.message ?? 'Unable to verify Stripe payment status.');
+  const checkoutFeedback =
+    checkoutStatus === 'success'
+      ? {
+          status: 'success' as const,
+          message:
+            'Payment submitted successfully through Authorize.Net. Thank you for your bagged feed order.',
         }
+      : checkoutStatus === 'cancelled'
+        ? {
+            status: 'error' as const,
+            message: 'Authorize.Net checkout was cancelled. Your order was not paid yet.',
+          }
+        : null;
 
-        if (result.paid) {
-          setSubmitStatus('success');
-          setSubmitMessage('Payment successful. Thank you for your bagged feed order.');
-          setOrderType('bagged');
-          setBaggedQuantities({});
-          return;
-        }
+  function redirectToAuthorizeCheckout(checkoutUrl: string, token: string) {
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = checkoutUrl;
 
-        setSubmitStatus('error');
-        setSubmitMessage(
-          `Payment is currently ${result.paymentStatus ?? 'unpaid'}. If this looks wrong, contact us and share your session id.`,
-        );
-      } catch (error) {
-        const message =
-          error instanceof Error
-            ? error.message
-            : 'Unable to verify Stripe payment status right now. Please contact us to confirm payment.';
-        setSubmitStatus('error');
-        setSubmitMessage(message);
-      }
-    }
+    const tokenInput = document.createElement('input');
+    tokenInput.type = 'hidden';
+    tokenInput.name = 'token';
+    tokenInput.value = token;
 
-    if (checkoutStatus === 'success') {
-      void verifyStripeCheckoutSuccess();
-    }
-
-    if (checkoutStatus === 'cancelled') {
-      setSubmitStatus('error');
-      setSubmitMessage('Stripe checkout was cancelled. Your order was not paid yet.');
-      setOrderType('bagged');
-    }
-  }, [searchParams]);
+    form.appendChild(tokenInput);
+    document.body.appendChild(form);
+    form.submit();
+  }
 
   function updateBagQuantity(productId: string, value: string) {
     const parsed = Number.parseInt(value, 10);
@@ -147,7 +123,7 @@ export default function OrderFeed() {
     };
 
     try {
-      const endpoint = orderType === 'bagged' ? '/api/payments/stripe-checkout' : '/api/orders';
+      const endpoint = orderType === 'bagged' ? '/api/payments/authorize-checkout' : '/api/orders';
       const response = await fetch(endpoint, {
         method: 'POST',
         headers: {
@@ -156,18 +132,18 @@ export default function OrderFeed() {
         body: JSON.stringify(payload),
       });
 
-      const result = (await response.json()) as { message?: string; checkoutUrl?: string };
+      const result = (await response.json()) as { message?: string; checkoutUrl?: string; token?: string };
 
       if (!response.ok) {
         throw new Error(result.message ?? 'Unable to submit your order right now.');
       }
 
       if (orderType === 'bagged') {
-        if (!result.checkoutUrl) {
-          throw new Error('Stripe checkout could not be started. Please try again.');
+        if (!result.checkoutUrl || !result.token) {
+          throw new Error('Authorize.Net checkout could not be started. Please try again.');
         }
 
-        window.location.assign(result.checkoutUrl);
+        redirectToAuthorizeCheckout(result.checkoutUrl, result.token);
         return;
       }
 
@@ -443,16 +419,16 @@ export default function OrderFeed() {
                 />
               </div>
 
-              {submitStatus !== 'idle' && (
+              {(checkoutFeedback || submitStatus !== 'idle') && (
                 <div
                   className={`rounded px-4 py-3 text-sm font-medium ${
-                    submitStatus === 'success'
+                    (checkoutFeedback?.status ?? submitStatus) === 'success'
                       ? 'bg-green-50 text-green-800 border border-green-200'
                       : 'bg-red-50 text-red-800 border border-red-200'
                   }`}
                   role="status"
                 >
-                  {submitMessage}
+                  {checkoutFeedback?.message ?? submitMessage}
                 </div>
               )}
 
@@ -464,13 +440,13 @@ export default function OrderFeed() {
                 {isSubmitting
                   ? 'Submitting...'
                   : orderType === 'bagged'
-                    ? 'Continue to Secure Stripe Checkout'
+                    ? 'Continue to Secure Authorize.Net Checkout'
                     : 'Submit Order Request'}
               </button>
 
               {orderType === 'bagged' && (
                 <p className="text-xs text-[var(--ink-muted)] text-center">
-                  Bagged feed payments are processed securely through Stripe.
+                  Bagged feed payments are processed securely through Authorize.Net.
                 </p>
               )}
             </form>

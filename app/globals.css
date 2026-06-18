@@ -1,0 +1,138 @@
+@import "tailwindcss";
+
+:root {
+  /* Kesten Feed Co Brand Palette */
+  --primary: #0f4878;
+  --lace: #f9f2e3;
+  --bronze: #bb8132;
+  --brown: #6b4423;
+  --green: #6d8e66;
+  
+  /* Legacy aliases for existing styles */
+  --background: #f9f2e3;
+  --foreground: #0f4878;
+  --paper: #fbf7ef;
+  --wash: #f9f2e3;
+  --ink: #0f4878;
+  --ink-soft: rgba(15, 72, 120, 0.15);
+  --ink-muted: #6b4423;
+  --accent: #bb8132;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-space-grotesk);
+  --font-mono: var(--font-ibm-plex-mono);
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background:
+    radial-gradient(circle at 15% -10%, rgba(187, 129, 50, 0.14), transparent 35%),
+    radial-gradient(circle at 85% -8%, rgba(109, 142, 102, 0.14), transparent 33%),
+    var(--background);
+  color: var(--foreground);
+  font-family: var(--font-space-grotesk), "Segoe UI", sans-serif;
+  line-height: 1.55;
+}
+
+.site-shell {
+  background:
+    radial-gradient(circle at 14% 18%, rgba(213, 164, 74, 0.34), transparent 32%),
+    radial-gradient(circle at 88% 10%, rgba(93, 124, 67, 0.26), transparent 32%),
+    linear-gradient(180deg, #f2e8d7 0%, #ece1cf 100%);
+}
+
+.display-face {
+  font-family: var(--font-besley), Georgia, serif;
+  letter-spacing: -0.02em;
+}
+
+.fade-in {
+  animation: fade-in 640ms ease-out both;
+}
+
+.fade-in-delayed {
+  animation: fade-in 720ms ease-out 120ms both;
+}
+
+.slide-up {
+  animation: slide-up 720ms ease-out both;
+}
+
+.page-flow > section {
+  animation: fade-in 560ms ease-out both;
+}
+
+.page-flow > section + section {
+  margin-top: clamp(0.5rem, 1vw, 1rem);
+}
+
+.page-flow > section:nth-of-type(2) {
+  animation-delay: 60ms;
+}
+
+.page-flow > section:nth-of-type(3) {
+  animation-delay: 120ms;
+}
+
+.page-flow > section:nth-of-type(4) {
+  animation-delay: 180ms;
+}
+
+.page-flow > section:nth-of-type(5) {
+  animation-delay: 240ms;
+}
+
+.page-flow > section:nth-of-type(6) {
+  animation-delay: 300ms;
+}
+
+.page-flow > section:nth-of-type(7) {
+  animation-delay: 360ms;
+}
+
+.page-flow > section:nth-of-type(8) {
+  animation-delay: 420ms;
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(26px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fade-in,
+  .fade-in-delayed,
+  .slide-up,
+  .page-flow > section {
+    animation: none;
+  }
+
+  html {
+    scroll-behavior: auto;
+  }
+}
